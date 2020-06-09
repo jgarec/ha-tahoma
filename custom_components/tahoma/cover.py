@@ -88,6 +88,11 @@ class TahomaCover(TahomaDevice, CoverEntity):
 
     def update(self):
         """Update method."""
+
+        # Refresh required state fields
+        if "refreshPedestrianPosition" in self.tahoma_device.command_definitions:
+            self.apply_action("refreshPedestrianPosition")
+
         self.controller.get_states([self.tahoma_device])
 
         # Set current position.
