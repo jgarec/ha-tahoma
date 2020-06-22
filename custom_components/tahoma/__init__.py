@@ -1,23 +1,22 @@
 """The TaHoma integration."""
 import asyncio
-
-import voluptuous as vol
+import json
 import logging
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, CONF_EXCLUDE
-
-from .const import DOMAIN, TAHOMA_TYPES
-from .tahoma_api import TahomaApi
 from requests.exceptions import RequestException
+import voluptuous as vol
 
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_EXCLUDE, CONF_PASSWORD, CONF_USERNAME
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers import (
     config_validation as cv,
     device_registry as dr,
     discovery,
 )
+
+from .const import DOMAIN, TAHOMA_TYPES
+from .tahoma_api import TahomaApi
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -39,9 +38,11 @@ CONFIG_SCHEMA = vol.Schema(
 
 PLATFORMS = [
     "binary_sensor",
+    "climate",
     "cover",
     "light",
     "lock",
+    "scene",
     "sensor",
     "switch",
 ]
@@ -86,11 +87,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
                 hass.data[DOMAIN][entry.entry_id]["devices"].append(_device)
 
         else:
-            _LOGGER.warning(
-                "Unsupported TaHoma device (%s - %s - %s)",
+            _LOGGER.debug(
+                "Unsupported Tahoma device (%s). Create an issue on Github with the following information. \n\n %s \n %s \n %s",
                 _device.type,
-                _device.uiclass,
-                _device.widget,
+                _device.type + " - " + _device.uiclass + " - " + _device.widget,
+                json.dumps(_device.command_def) + ",",
+                json.dumps(_device.states_def),
             )
 
     for component in PLATFORMS:
@@ -115,6 +117,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
         )
     )
     if unload_ok:
-        hass.data[DOMAIN][entry.entry_id].pop(entry.entry_id)
+        hass.data[DOMAIN].pop(entry.entry_id)
 
     return unload_ok

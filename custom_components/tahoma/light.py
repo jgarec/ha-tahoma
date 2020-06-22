@@ -1,18 +1,26 @@
 """TaHoma light platform that implements dimmable TaHoma lights."""
-import logging
 from datetime import timedelta
+import logging
 
 from homeassistant.components.light import (
-    LightEntity,
     ATTR_BRIGHTNESS,
     ATTR_EFFECT,
+    ATTR_HS_COLOR,
     SUPPORT_BRIGHTNESS,
+    SUPPORT_COLOR,
     SUPPORT_EFFECT,
+    LightEntity,
 )
-
 from homeassistant.const import STATE_OFF, STATE_ON
+import homeassistant.util.color as color_util
 
-from .const import DOMAIN, TAHOMA_TYPES
+from .const import (
+    CORE_BLUE_COLOR_INTENSITY_STATE,
+    CORE_GREEN_COLOR_INTENSITY_STATE,
+    CORE_RED_COLOR_INTENSITY_STATE,
+    DOMAIN,
+    TAHOMA_TYPES,
+)
 from .tahoma_device import TahomaDevice
 
 _LOGGER = logging.getLogger(__name__)
@@ -36,17 +44,16 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 
 class TahomaLight(TahomaDevice, LightEntity):
-    """Representation of a Tahome light"""
+    """Representation of a Tahome light."""
 
     def __init__(self, tahoma_device, controller):
+        """Initialize a device."""
         super().__init__(tahoma_device, controller)
 
-        self._skip_update = False
         self._effect = None
         self._brightness = None
         self._state = None
-        
-        self.update()
+        self._hs_color = []
 
     @property
     def brightness(self) -> int:
@@ -57,6 +64,13 @@ class TahomaLight(TahomaDevice, LightEntity):
     def is_on(self) -> bool:
         """Return true if light is on."""
         return self._state
+
+    @property
+    def hs_color(self):
+        """Return the hue and saturation color value [float, float]."""
+        if self._hs_color:
+            return self._hs_color
+        return None
 
     @property
     def supported_features(self) -> int:
@@ -70,13 +84,23 @@ class TahomaLight(TahomaDevice, LightEntity):
         if "wink" in self.tahoma_device.command_definitions:
             supported_features |= SUPPORT_EFFECT
 
+        if "setRGB" in self.tahoma_device.command_definitions:
+            supported_features |= SUPPORT_COLOR
+
         return supported_features
 
-    async def async_turn_on(self, **kwargs) -> None:
+    def turn_on(self, **kwargs) -> None:
         """Turn the light on."""
         self._state = True
-        self._skip_update = True
 
+        if ATTR_HS_COLOR in kwargs:
+            self.apply_action(
+                "setRGB",
+                *[
+                    int(float(c))
+                    for c in color_util.color_hs_to_RGB(*kwargs[ATTR_HS_COLOR])
+                ],
+            )
         if ATTR_BRIGHTNESS in kwargs:
             self._brightness = int(float(kwargs[ATTR_BRIGHTNESS]) / 255 * 100)
             self.apply_action("setIntensity", self._brightness)
@@ -88,10 +112,9 @@ class TahomaLight(TahomaDevice, LightEntity):
 
         self.async_write_ha_state()
 
-    async def async_turn_off(self, **kwargs) -> None:
+    def turn_off(self, **kwargs) -> None:
         """Turn the light off."""
         self._state = False
-        self._skip_update = True
         self.apply_action("off")
 
         self.async_write_ha_state()
@@ -108,12 +131,9 @@ class TahomaLight(TahomaDevice, LightEntity):
 
     def update(self):
         """Fetch new state data for this light.
+
         This is the only method that should fetch new data for Home Assistant.
         """
-        # Postpone the immediate state check for changes that take time.
-        if self._skip_update:
-            self._skip_update = False
-            return
 
         self.controller.get_states([self.tahoma_device])
 
@@ -126,3 +146,18 @@ class TahomaLight(TahomaDevice, LightEntity):
             self._state = True
         else:
             self._state = False
+
+        if CORE_RED_COLOR_INTENSITY_STATE in self.tahoma_device.active_states:
+            self._hs_color = color_util.color_RGB_to_hs(
+                [
+                    self.tahoma_device.active_states.get(
+                        CORE_RED_COLOR_INTENSITY_STATE
+                    ),
+                    self.tahoma_device.active_states.get(
+                        CORE_GREEN_COLOR_INTENSITY_STATE
+                    ),
+                    self.tahoma_device.active_states.get(
+                        CORE_BLUE_COLOR_INTENSITY_STATE
+                    ),
+                ]
+            )

@@ -6,13 +6,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4] - 22-06-2020
+
 ### Added
 
+- Added support for HeatingSystem devices
 - Added support for Gate devices
+- Added support for AirSensor devices
+- Added support for ElectricitySensor devices
+- Added support for TemperatureSensor devices
+- Added support for Curtain devices
+- Added support for Generic devices (cover)
+- Added support for SwingingShutter devices
+- Added support for 'up' and 'down' commands for covers
+- Added tilt_position support for covers
+- Added support for 'setRGB' commands for lights
 
 ### Changed
 
 - Removed all hardcoded device strings from the cover component
+- Update state after a command has been succesfully executed
 
 ## [1.0.0] - 04-06-2020
 

@@ -24,19 +24,24 @@ https://github.com/imicknl/ha-tahoma
 
 This component doesn't have a hardcoded list of devices anymore, but relies on the `uiclass` of every Somfy device. This way more devices will be supported out of the box, based on their category and available states and commands.
 
-If your device is not supported, it will show the following message in the logging. You can use this to create a new issue in the repository to see if the component can be added.
+If your device is not supported, it will show the following message in the debug log. You can use this to create a new issue in the repository to see if the component can be added.
 
-`Unsupported Tahoma device (internal:TSKAlarmComponent - Alarm - TSKAlarmController)`
+`DEBUG (MainThread) [custom_components.tahoma] Unsupported Tahoma device (internal:TSKAlarmComponent).`
 
 | Somfy uiClass     | Home Assistant platform |
 | ----------------- | ----------------------- |
+| HeatingSystem     | climate                 |
 | Awning            | cover                   |
+| Curtain           | cover                   |
 | ExteriorScreen    | cover                   |
 | Gate              | cover                   |
 | GarageDoor        | cover                   |
 | Pergola           | cover                   |
 | RollerShutter     | cover                   |
+| SwingingShutter   | cover                   |
 | Window            | cover                   |
+| AirSensor         | sensor                  |
+| ElectricitySensor | sensor                  |
 | HumiditySensor    | sensor                  |
 | LightSensor       | sensor                  |
 | TemperatureSensor | sensor                  |
@@ -45,12 +50,32 @@ If your device is not supported, it will show the following message in the loggi
 | ContactSensor     | binary_sensor           |
 | OccupancySensor   | binary_sensor           |
 | SmokeSensor       | binary_sensor           |
+| WindowHandle      | binary_sensor           |
 | Light             | light                   |
 
 ## Not supported (yet)
 
-| Somfy uiClass    |
-| ---------------- |
-| RemoteController |
-| Alarm            |
-| HeatingSystem    |
+| Somfy uiClass         |
+| --------------------- |
+| RemoteController      |
+| Alarm                 |
+| EvoHome               |
+| HitachiHeatingSystem  |
+| ExteriorHeatingSystem |
+| Fan                   |
+| Siren                 |
+| MusicPlayer           |
+| VentilationSystem     |
+
+## Advanced
+
+### Enable debug logging
+
+The [logger](https://www.home-assistant.io/integrations/logger/) integration lets you define the level of logging activities in Home Assistant. Turning on debug mode will show more information about unsupported devices in your logbook.
+
+```yaml
+logger:
+  default: critical
+  logs:
+    custom_components.tahoma: debug
+```
