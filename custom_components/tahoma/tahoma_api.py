@@ -13,7 +13,7 @@ import urllib.parse
 import requests
 
 BASE_URL = (
-    "https://ha201-1.overkiz.com/enduser-mobile-web/enduserAPI"  # /doc for API doc
+    "https://ha201-1.overkiz.com/enduser-mobile-web/enduserAPI/"  # /doc for API doc
 )
 BASE_HEADERS = {"User-Agent": "mine"}
 
