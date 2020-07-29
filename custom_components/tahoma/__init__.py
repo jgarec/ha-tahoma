@@ -15,6 +15,7 @@ from .const import DOMAIN, SUPPORTED_PLATFORMS, TAHOMA_TYPES
 from .coordinator import TahomaDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
+DEFAULT_UPDATE_INTERVAL = timedelta(seconds=5)
 
 
 async def async_setup(hass: HomeAssistant, config: dict):
@@ -45,12 +46,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     tahoma_coordinator = TahomaDataUpdateCoordinator(
         hass,
         _LOGGER,
-        # Name of the data. For logging purposes.
         name="TaHoma Event Fetcher",
         client=client,
         devices=await client.get_devices(),
         listener_id=await client.register_event_listener(),
-        update_interval=timedelta(seconds=30),
+        update_interval=DEFAULT_UPDATE_INTERVAL,
     )
 
     await tahoma_coordinator.async_refresh()
