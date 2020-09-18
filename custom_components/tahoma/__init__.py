@@ -13,12 +13,20 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.components.scene import DOMAIN as SCENE
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_EXCLUDE, CONF_PASSWORD, CONF_USERNAME
+from homeassistant.const import (
+    CONF_EXCLUDE,
+    CONF_PASSWORD,
+    CONF_USERNAME,
+    EVENT_HOMEASSISTANT_START,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import aiohttp_client, config_validation as cv
+from homeassistant.helpers.event import async_track_time_interval
 
 from .const import (
+    CONF_REFRESH_STATE_INTERVAL,
     CONF_UPDATE_INTERVAL,
+    DEFAULT_REFRESH_STATE_INTERVAL,
     DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
     IGNORED_TAHOMA_TYPES,
@@ -29,6 +37,7 @@ from .coordinator import TahomaDataUpdateCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 SERVICE_EXECUTE_COMMAND = "execute_command"
+SERVICE_REFRESH_STATES = "refresh_states"
 
 CONFIG_SCHEMA = vol.Schema(
     {
@@ -147,19 +156,41 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
             "Home Assistant Service",
         )
 
-    hass.services.async_register(
-        DOMAIN,
-        SERVICE_EXECUTE_COMMAND,
-        handle_execute_command,
-        vol.Schema(
-            {
-                vol.Required("entity_id"): cv.string,
-                vol.Required("command"): cv.string,
-                vol.Optional("args", default=[]): vol.All(
-                    cv.ensure_list, [vol.Any(str, int)]
-                ),
-            }
-        ),
+    async def handle_refresh_states(*_):
+        """Request a state refresh and notify DataUpdateCoordinator."""
+        tahoma_coordinator.set_refresh_in_progress(True)
+        tahoma_coordinator.set_update_interval(1)
+        await client.refresh_states()
+        await tahoma_coordinator.async_refresh()
+
+    def _register_services(event):
+        """Register the domain services."""
+        hass.services.async_register(
+            DOMAIN, SERVICE_REFRESH_STATES, handle_refresh_states
+        )
+
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_EXECUTE_COMMAND,
+            handle_execute_command,
+            vol.Schema(
+                {
+                    vol.Required("entity_id"): cv.string,
+                    vol.Required("command"): cv.string,
+                    vol.Optional("args", default=[]): vol.All(
+                        cv.ensure_list, [vol.Any(str, int)]
+                    ),
+                }
+            ),
+        )
+
+    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_START, _register_services)
+
+    refresh_state_interval = entry.options.get(
+        CONF_REFRESH_STATE_INTERVAL, DEFAULT_REFRESH_STATE_INTERVAL
+    )
+    async_track_time_interval(
+        hass, handle_refresh_states, timedelta(seconds=refresh_state_interval)
     )
 
     return True
@@ -195,3 +226,6 @@ async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
         coordinator.original_update_interval = new_update_interval
 
         await coordinator.async_refresh()
+
+    if entry.options[CONF_REFRESH_STATE_INTERVAL]:
+        print("Change refresh state of async_track_time_interval")

@@ -12,6 +12,7 @@ DOMAIN = "tahoma"
 
 MIN_UPDATE_INTERVAL = 1
 DEFAULT_UPDATE_INTERVAL = 30
+DEFAULT_REFRESH_STATE_INTERVAL = 3600
 
 IGNORED_TAHOMA_TYPES = [
     "ProtocolGateway",
@@ -78,4 +79,5 @@ CORE_ON_OFF_STATE = "core:OnOffState"
 COMMAND_OFF = "off"
 COMMAND_ON = "on"
 
+CONF_REFRESH_STATE_INTERVAL = "refresh_state_interval"
 CONF_UPDATE_INTERVAL = "update_interval"
